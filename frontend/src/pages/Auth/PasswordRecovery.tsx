@@ -26,7 +26,7 @@ const PasswordRecovery: React.FC = () => {
     }
   }, [location]);
 
-  const verifyResetToken = async (token) => {
+  const verifyResetToken = async (token: string) => {
     try {
       const response = await axios.get(`http://localhost:5000/api/auth/verify-reset-token?token=${token}`);
       if (response.status === 200) {
@@ -55,16 +55,12 @@ const PasswordRecovery: React.FC = () => {
         setStage('verify');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred. Please try again.');
+      setError((err as any).response?.data?.message || 'An error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleVerifyCode = async () => {
-    // Since we're using a direct link with a token, this step can be skipped.
-    // The user clicks the link in the email, which includes the token and takes them directly to the reset stage.
-  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +92,7 @@ const PasswordRecovery: React.FC = () => {
         navigate('/password-reset-success');
       }
     } catch (err) {
-      setPasswordError(err.response?.data?.message || 'An error occurred. Please try again.');
+      setPasswordError((err as any).response?.data?.message || 'An error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

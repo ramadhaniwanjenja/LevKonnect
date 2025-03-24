@@ -58,7 +58,11 @@ const Register: React.FC = () => {
         navigate(`/check-email?email=${encodeURIComponent(formData.email)}`);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred during registration');
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'An error occurred during registration');
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setIsLoading(false);
     }

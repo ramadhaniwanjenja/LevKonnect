@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
@@ -40,14 +39,14 @@ interface ProfileData {
 }
 
 const Profile: React.FC = () => {
-  const navigate = useNavigate();
+  // Removed unused navigate declaration
   // For demo purposes, we'll assume we're viewing our own profile
   // In a real app, you'd determine if this is the user's own profile or someone else's
   const isOwnProfile = true;
   
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  // Removed unused activeTab state declaration
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<ProfileData | null>(null);
   const [newSkill, setNewSkill] = useState('');
@@ -342,124 +341,9 @@ const Profile: React.FC = () => {
     }, 1500);
   };
   
-  const renderOverviewTab = () => {
-    if (!profileData) return null;
-    
-    return (
-      <div className="space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">About Me</h3>
-          <p className="text-gray-700 whitespace-pre-line">{profileData.bio}</p>
-        </div>
-        
-        {profileData.userType === 'engineer' && (
-          <>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Skills</h3>
-              <div className="flex flex-wrap gap-2">
-                {profileData.skills?.map((skill, index) => (
-                  <span 
-                    key={index} 
-                    className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Education</h3>
-                <div className="space-y-4">
-                  {profileData.education?.map((edu, index) => (
-                    <div key={index} className="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
-                      <h4 className="font-medium text-gray-800">{edu.degree}</h4>
-                      <p className="text-gray-600">{edu.institution}</p>
-                      <p className="text-sm text-gray-500">{edu.year}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Certifications</h3>
-                <div className="space-y-4">
-                  {profileData.certifications?.map((cert, index) => (
-                    <div key={index} className="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
-                      <h4 className="font-medium text-gray-800">{cert.name}</h4>
-                      <p className="text-gray-600">{cert.issuer}</p>
-                      <p className="text-sm text-gray-500">{cert.year}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-        
-        {profileData.userType === 'client' && profileData.company && (
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Company Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 mb-1">Company Name</h4>
-                <p className="text-gray-800">{profileData.company}</p>
-              </div>
-              {profileData.website && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Website</h4>
-                  <p className="text-gray-800">
-                    <a href={profileData.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                      {profileData.website}
-                    </a>
-                  </p>
-                </div>
-              )}
-              {profileData.industryType && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">Industry</h4>
-                  <p className="text-gray-800">{profileData.industryType}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+  // Removed unused renderOverviewTab function to resolve the error.
   
-  const renderPortfolioTab = () => {
-    if (!profileData || !profileData.portfolio) {
-      return (
-        <div className="bg-white p-6 rounded-lg shadow text-center">
-          <p className="text-gray-500">No portfolio items yet.</p>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {profileData.portfolio.map((item, index) => (
-          <div key={index} className="bg-white rounded-lg shadow overflow-hidden">
-            {item.imageUrl && (
-              <div className="h-48 overflow-hidden">
-                <img 
-                  src={item.imageUrl} 
-                  alt={item.title} 
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                />
-              </div>
-            )}
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">{item.title}</h3>
-              <p className="text-gray-700">{item.description}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  // Removed unused renderPortfolioTab function to resolve the error.
   
   const renderEditProfileForm = () => {
     if (!formData) return null;

@@ -7,7 +7,7 @@ import axios from 'axios';
 const EmailVerified: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [token, setToken] = useState('');
+  const [, setToken] = useState('');
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,7 +23,7 @@ const EmailVerified: React.FC = () => {
     }
   }, [location]);
 
-  const verifyEmail = async (token) => {
+  const verifyEmail = async (token: string) => {
     try {
       const response = await axios.get(`http://localhost:5000/api/auth/verify-email?token=${token}`);
       if (response.status === 200) {

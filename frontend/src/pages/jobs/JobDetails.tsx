@@ -73,8 +73,16 @@ const JobDetails: React.FC = () => {
           additionalInstructions: jobData.additionalInstructions || 'No additional instructions provided.',
         });
       } catch (err) {
-        console.error('Error fetching job:', err.response ? err.response.data : err.message);
-        setError(err.response?.data?.message || err.message || 'Failed to fetch job details. Please try again.');
+        if (axios.isAxiosError(err)) {
+          console.error('Error fetching job:', err.response ? err.response.data : err.message);
+        } else {
+          console.error('Error fetching job:', err);
+        }
+        if (axios.isAxiosError(err)) {
+          setError(err.response?.data?.message || err.message || 'Failed to fetch job details. Please try again.');
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -144,9 +152,15 @@ const JobDetails: React.FC = () => {
   
         navigate('/bid-submitted');
       } catch (err) {
-        console.error('Error submitting bid:', err.response ? err.response.data : err.message);
+        if (axios.isAxiosError(err)) {
+          console.error('Error submitting bid:', err.response ? err.response.data : err.message);
+        } else {
+          console.error('Error submitting bid:', err);
+        }
         setErrors({
-          submit: err.response?.data?.message || err.message || 'Failed to submit bid. Please try again.',
+          submit: axios.isAxiosError(err) 
+            ? err.response?.data?.message || err.message || 'Failed to submit bid. Please try again.' 
+            : 'An unexpected error occurred. Please try again.',
         });
       } finally {
         setIsSubmitting(false);

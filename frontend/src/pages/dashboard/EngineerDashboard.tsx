@@ -6,7 +6,7 @@ import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 
 const EngineerDashboard: React.FC = () => {
-  const [userType, setUserType] = useState<'engineer'>('engineer'); // Fixed to engineer
+  const [userType] = useState<'engineer'>('engineer'); // Fixed to engineer
   const [stats, setStats] = useState({
     activeProjects: 0,
     completedProjects: 0,

@@ -1,4 +1,4 @@
-// Login.tsx (updated)
+// Login.tsx (updated with VITE_API_URL)
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Footer from '../../components/Footer';
@@ -15,6 +15,9 @@ const Login: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
+
+  // Get the API URL from the environment variable (Vite uses import.meta.env)
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -57,7 +60,8 @@ const Login: React.FC = () => {
       setLoading(true);
 
       try {
-        const response = await axios.post('http://localhost:5000/api/auth/login', {
+        // Use the API_URL from the environment variable
+        const response = await axios.post(`${API_URL}/api/auth/login`, {
           email: formData.email,
           password: formData.password,
         });
@@ -83,11 +87,15 @@ const Login: React.FC = () => {
         }
       } catch (err) {
         setLoading(false);
-        setApiError(
-          err.response?.data?.message ||
-          err.message ||
-          'An error occurred during login'
-        );
+        if (axios.isAxiosError(err)) {
+          setApiError(
+            err.response?.data?.message ||
+            err.message ||
+            'An error occurred during login'
+          );
+        } else {
+          setApiError('An unexpected error occurred');
+        }
       }
     }
   };
@@ -196,6 +204,5 @@ const Login: React.FC = () => {
     </div>
   );
 };
-
 
 export default Login;

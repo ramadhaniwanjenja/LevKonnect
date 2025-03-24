@@ -6,7 +6,7 @@ import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 
 const Dashboard: React.FC = () => {
-  const [userType, setUserType] = useState<'client' | 'engineer'>('client'); // For demo, would come from auth
+  const [userType] = useState<'client' | 'engineer'>('client'); // For demo, would come from auth
   const [stats, setStats] = useState({
     activeProjects: 0,
     completedProjects: 0,

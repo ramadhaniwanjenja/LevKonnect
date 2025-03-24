@@ -74,8 +74,16 @@ const ManageProjects: React.FC = () => {
         setProjects(mappedProjects);
         setIsLoading(false);
       } catch (err) {
-        console.error('Error fetching projects:', err.response ? err.response.data : err.message);
-        setError(err.response?.data?.message || err.message || 'Failed to fetch projects. Please try again.');
+        if (axios.isAxiosError(err)) {
+          console.error('Error fetching projects:', err.response ? err.response.data : err.message);
+        } else {
+          console.error('Error fetching projects:', err);
+        }
+        if (axios.isAxiosError(err)) {
+          setError(err.response?.data?.message || err.message || 'Failed to fetch projects. Please try again.');
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
         setIsLoading(false);
       }
     };
@@ -121,8 +129,16 @@ const ManageProjects: React.FC = () => {
 
       setProjects(updatedProjects);
     } catch (err) {
-      console.error('Error accepting bid:', err.response ? err.response.data : err.message);
-      setError(err.response?.data?.message || err.message || 'Failed to accept bid. Please try again.');
+      if (axios.isAxiosError(err)) {
+        console.error('Error accepting bid:', err.response ? err.response.data : err.message);
+      } else {
+        console.error('Error accepting bid:', err);
+      }
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || err.message || 'Failed to accept bid. Please try again.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     }
   };
 

@@ -1,13 +1,11 @@
 import './App.css'
-import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import Footer from './components/Footer';
+// import Footer from './components/Footer'; // Removed as it is unused
 import Contact from './pages/Contact';
 import HowItWorks from './pages/HowItWorks';
 import Services from './pages/Services';
 import About from './pages/About';
-import Hero from './components/Hero';
-import Navbar from './components/Navbar';
+// import Navbar from './components/Navbar'; // Removed as it is unused
 import Login from './pages/Auth/Login';
 import Dashboard from './pages/dashboard/Dashboard'; 
 import JobPostingPage from './pages/jobs/PostJob';

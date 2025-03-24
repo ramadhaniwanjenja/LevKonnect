@@ -74,8 +74,16 @@ const ClientProjectDetails: React.FC = () => {
         setProject(projectData);
         setIsLoading(false);
       } catch (err) {
-        console.error('Error fetching project:', err.response ? err.response.data : err.message);
-        setError(err.response?.data?.message || err.message || 'Failed to fetch project details. Please try again.');
+        if (axios.isAxiosError(err)) {
+          console.error('Error fetching project:', err.response ? err.response.data : err.message);
+        } else {
+          console.error('Error fetching project:', err);
+        }
+        if (axios.isAxiosError(err)) {
+          setError(err.response?.data?.message || err.message || 'Failed to fetch project details. Please try again.');
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
         setIsLoading(false);
       }
     };
@@ -117,8 +125,16 @@ const ClientProjectDetails: React.FC = () => {
         setProject(updatedProject);
       }
     } catch (err) {
-      console.error('Error accepting bid:', err.response ? err.response.data : err.message);
-      setError(err.response?.data?.message || err.message || 'Failed to accept bid. Please try again.');
+      if (axios.isAxiosError(err)) {
+        console.error('Error accepting bid:', err.response ? err.response.data : err.message);
+      } else {
+        console.error('Error accepting bid:', err);
+      }
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || err.message || 'Failed to accept bid. Please try again.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     }
   };
 

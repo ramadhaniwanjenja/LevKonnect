@@ -131,7 +131,7 @@ const PostJob = () => {
       console.log('Job posted:', response.data);
       navigate('/job-posted-success');
     } catch (error) {
-      console.error('Error posting job:', error.response ? error.response.data : error.message);
+      console.error('Error posting job:', (error as any).response ? (error as any).response.data : (error as any).message);
       setErrors({ ...errors, submit: 'Failed to post job. Please try again.' });
     } finally {
       setIsSubmitting(false);

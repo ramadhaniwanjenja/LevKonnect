@@ -120,7 +120,13 @@ const AdminDashboard: React.FC = () => {
     
       } catch (error) {
         console.error('Error fetching data:', error);
-        setError(error.response?.data?.message || error.message || 'Failed to load dashboard data');
+        if (axios.isAxiosError(error)) {
+          setError(error.response?.data?.message || error.message || 'Failed to load dashboard data');
+        } else if (error instanceof Error) {
+          setError(error.message || 'Failed to load dashboard data');
+        } else {
+          setError('Failed to load dashboard data');
+        }
       } finally {
         setIsLoading(false);
       }

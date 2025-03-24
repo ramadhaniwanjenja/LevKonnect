@@ -56,3 +56,4 @@ Desktop.ini
 # Ignore local test files (if any)
 test-results/
 coverage/
+.vercel

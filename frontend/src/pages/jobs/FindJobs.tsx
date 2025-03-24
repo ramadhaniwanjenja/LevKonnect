@@ -81,8 +81,16 @@ const FindJobs: React.FC = () => {
         setJobs(fetchedJobs);
         setFilteredJobs(fetchedJobs);
       } catch (err) {
-        console.error('Error fetching jobs:', err.response ? err.response.data : err.message);
-        setError(err.response?.data?.message || err.message || 'Failed to fetch jobs. Please try again.');
+        if (axios.isAxiosError(err)) {
+          console.error('Error fetching jobs:', err.response ? err.response.data : err.message);
+        } else {
+          console.error('Error fetching jobs:', err);
+        }
+        if (axios.isAxiosError(err)) {
+          setError(err.response?.data?.message || err.message || 'Failed to fetch jobs. Please try again.');
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
         setJobs([]);
         setFilteredJobs([]);
       } finally {
