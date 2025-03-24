@@ -64,19 +64,19 @@ const Footer: React.FC = () => {
               </li>
               <li className="mt-4">
                 <h4 className="text-sm font-medium text-gray-400 mb-2">Subscribe to our newsletter</h4>
-                <form className="flex">
+                <div className="flex">
                   <input
                     type="email"
                     placeholder="Your email"
                     className="px-4 py-2 w-full text-gray-800 rounded-l focus:outline-none"
                   />
-                  <button
-                    type="submit"
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-r transition-colors"
+                  <Link 
+                    to="/contact"
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-r transition-colors flex items-center"
                   >
                     Subscribe
-                  </button>
-                </form>
+                  </Link>
+                </div>
               </li>
             </ul>
           </div>
