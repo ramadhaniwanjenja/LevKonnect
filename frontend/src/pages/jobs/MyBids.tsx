@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode'; // Import jwt-decode as a named import to decode the token
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
+
+interface DecodedToken {
+  id: number;
+  user_type: 'client' | 'engineer' | 'admin';
+}
 
 interface Bid {
   id: number;
@@ -21,19 +27,33 @@ const MyBids: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
+  const [userType, setUserType] = useState<'engineer' | null>(null);
+
+  // Use VITE_API_URL from environment variables
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
 
   useEffect(() => {
-    const fetchBids = async () => {
+    const fetchUserTypeAndBids = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
+        // Get the token from localStorage
         const token = localStorage.getItem('token');
         if (!token) {
           throw new Error('No authentication token found. Please log in.');
         }
 
-        const response = await axios.get('http://localhost:5000/api/bids/my-bids', {
+        // Decode the token to get user_type
+        const decoded: DecodedToken = jwtDecode(token);
+        const userTypeFromToken = decoded.user_type;
+        if (userTypeFromToken !== 'engineer') {
+          throw new Error('This page is for engineers only');
+        }
+        setUserType(userTypeFromToken);
+
+        const response = await axios.get(`${API_URL}/api/bids/my-bids`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -45,19 +65,24 @@ const MyBids: React.FC = () => {
           bidAmount: parseFloat(bid.bid_amount),
           deliveryDays: bid.delivery_days,
           status: bid.status as 'pending' | 'shortlisted' | 'accepted' | 'rejected',
-          submittedDate: bid.submitted_date || new Date().toISOString(),
+          submittedDate: bid.createdAt || new Date().toISOString(), // Use createdAt instead of submitted_date
         }));
 
         setBids(transformedBids);
         setIsLoading(false);
       } catch (err) {
-        console.error('Error fetching bids:', err);
-        setError('Failed to load bids. Please try again later.');
+        if (axios.isAxiosError(err)) {
+          console.error('Error fetching bids:', err.response ? err.response.data : err.message);
+          setError(err.response?.data?.message || err.message || 'Failed to load bids. Please try again later.');
+        } else {
+          console.error('Error fetching bids:', err);
+          setError((err as Error).message || 'An unexpected error occurred. Please try again.');
+        }
         setIsLoading(false);
       }
     };
 
-    fetchBids();
+    fetchUserTypeAndBids();
   }, []);
 
   const filteredBids = filter === 'all' 
@@ -83,6 +108,18 @@ const MyBids: React.FC = () => {
         return null;
     }
   };
+
+  if (!userType) {
+    return (
+      <div className="min-h-screen flex flex-col pt-12">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center bg-gray-50">
+          <div className="text-red-500 text-center">Loading user data...</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col pt-15">
