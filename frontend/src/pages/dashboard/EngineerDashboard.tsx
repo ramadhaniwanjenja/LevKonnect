@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode'; // Import jwt-decode to decode the token
+import axios, { AxiosError } from 'axios';
+import { jwtDecode } from 'jwt-decode';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
@@ -54,12 +54,16 @@ const EngineerDashboard: React.FC = () => {
           },
         };
 
-        // Use the same /api/dashboard/metrics endpoint as the client dashboard
-        const metricsResponse = await axios.get(`${API_URL}/api/dashboard/metrics`, config);
+        // Log the full URL to confirm
+        const metricsUrl = `${API_URL}/api/dashboard/engineer-metrics`;
+        console.log('Fetching metrics from:', metricsUrl);
+
+        const metricsResponse = await axios.get(metricsUrl, config);
+        console.log('API Response:', metricsResponse.data);
         setStats({
-          activeProjects: metricsResponse.data.activeProjects,
-          completedProjects: metricsResponse.data.completedProjects,
-          pendingBids: metricsResponse.data.pendingBids,
+          activeProjects: metricsResponse.data.activeProjects || 0,
+          completedProjects: metricsResponse.data.completedProjects || 0,
+          pendingBids: metricsResponse.data.pendingBids || 0,
           earnings: metricsResponse.data.earnings || 0,
         });
 
@@ -71,12 +75,19 @@ const EngineerDashboard: React.FC = () => {
         ]);
 
         setIsLoading(false);
-      } catch (err) {
-        console.error('Error fetching engineer dashboard data:', err);
-        if (err instanceof Error) {
-          setError(err.message || 'Failed to load dashboard data. Please try again later.');
+      } catch (err: unknown) {
+        if (axios.isAxiosError(err)) {
+          const axiosError = err as AxiosError<{ message?: string }>;
+          console.error('Error fetching engineer dashboard data:', axiosError.response ? axiosError.response.data : axiosError);
+          setError(
+            axiosError.response?.data?.message ||
+            axiosError.message ||
+            'Failed to load dashboard data. Please try again later.'
+          );
         } else {
-          setError('Failed to load dashboard data. Please try again later.');
+          const error = err as Error;
+          console.error('Error fetching engineer dashboard data:', error);
+          setError(error.message || 'An unexpected error occurred. Please try again later.');
         }
         setIsLoading(false);
       }
