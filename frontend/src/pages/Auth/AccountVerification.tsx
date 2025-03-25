@@ -13,6 +13,8 @@ const AccountVerification: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
 
   // Extract email and token from URL query parameters
   useEffect(() => {
@@ -50,7 +52,7 @@ const AccountVerification: React.FC = () => {
     setError('');
 
     try {
-      const response = await axios.get(`http://localhost:5000/api/auth/verify-email?token=${tokenFromURL}`);
+      const response = await axios.get(`${API_URL}/api/auth/verify-email?token=${tokenFromURL}`);
       if (response.status === 200) {
         setSuccess(true);
         setTimeout(() => navigate('/dashboard'), 2000);
@@ -66,7 +68,7 @@ const AccountVerification: React.FC = () => {
     setError('');
     try {
       // Placeholder for resend API call
-      // await axios.post('http://localhost:5000/api/auth/resend-verification', { email });
+      await axios.post('${API_URL}/api/auth/resend-verification', { email });
       setError('Verification email resent. Please check your inbox.');
     } catch (err) {
       setError('Failed to resend verification email. Try again later.');
