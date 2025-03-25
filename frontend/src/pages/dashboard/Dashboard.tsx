@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios'; // Import axios for API calls
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode'; // Import jwt-decode as a named import
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 
+interface DecodedToken {
+  id: number;
+  user_type: 'client' | 'engineer' | 'admin';
+}
+
 const Dashboard: React.FC = () => {
-  const [userType] = useState<'client' | 'engineer'>('client'); // For demo, would come from auth
+  const [userType, setUserType] = useState<'client' | 'engineer' | null>(null);
   const [stats, setStats] = useState({
     activeProjects: 0,
     completedProjects: 0,
@@ -17,34 +23,47 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Use VITE_API_URL from environment variables
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchUserTypeAndDashboardData = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Fetch metrics from the backend
+        // Get the token from localStorage
         const token = localStorage.getItem('token');
         if (!token) {
           throw new Error('No authentication token found');
         }
 
+        // Decode the token to get user_type
+        const decoded: DecodedToken = jwtDecode(token);
+        const userTypeFromToken = decoded.user_type;
+        if (userTypeFromToken !== 'client' && userTypeFromToken !== 'engineer') {
+          throw new Error('Invalid user type');
+        }
+        setUserType(userTypeFromToken);
+
+        // Fetch metrics from the backend
         const config = {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         };
 
-        const metricsResponse = await axios.get('http://localhost:5000/api/dashboard/metrics', config);
+        const metricsResponse = await axios.get(`${API_URL}/api/dashboard/metrics`, config);
         setStats({
           activeProjects: metricsResponse.data.activeProjects,
           completedProjects: metricsResponse.data.completedProjects,
           pendingBids: metricsResponse.data.pendingBids,
-          earnings: 0, // Earnings not implemented for client; can be added for engineer later
+          earnings: metricsResponse.data.earnings || 0, // Include earnings for engineers
         });
 
-        // Keep recent activity static for now to match the screenshot
-        if (userType === 'client') {
+        // Fetch recent activity (for now, keep it static as per your code)
+        if (userTypeFromToken === 'client') {
           setRecentActivity([
             { id: 1, type: 'bid', title: 'New bid on Solar Installation Project', date: '2025-03-05' },
             { id: 2, type: 'milestone', title: 'Milestone completed on Wind Energy Assessment', date: '2025-03-03' },
@@ -61,13 +80,17 @@ const Dashboard: React.FC = () => {
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data. Please try again later.');
+        if (err instanceof Error) {
+          setError(err.message || 'Failed to load dashboard data. Please try again later.');
+        } else {
+          setError('Failed to load dashboard data. Please try again later.');
+        }
         setIsLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, [userType]);
+    fetchUserTypeAndDashboardData();
+  }, []);
 
   const renderActivityIcon = (type: string) => {
     switch (type) {
@@ -85,6 +108,18 @@ const Dashboard: React.FC = () => {
         return <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">📌</div>;
     }
   };
+
+  if (!userType) {
+    return (
+      <div className="min-h-screen flex flex-col pt-12">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center bg-gray-50">
+          <div className="text-red-500 text-center">Loading user data...</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col pt-12">
