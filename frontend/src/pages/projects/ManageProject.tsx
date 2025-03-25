@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode'; // Import jwt-decode as a named import
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
+
+interface DecodedToken {
+  id: number;
+  user_type: 'client' | 'engineer' | 'admin';
+}
 
 interface Bid {
   id: number;
@@ -16,7 +22,7 @@ interface Bid {
   delivery_days: number;
   cover_letter: string;
   status: string;
-  submitted_date: string;
+  createdAt: string; // Changed from submitted_date to createdAt
 }
 
 interface Project {
@@ -26,7 +32,7 @@ interface Project {
   budget: number;
   status: string;
   deadline: string;
-  created_at: string;
+  createdAt: string; // Changed from created_at to createdAt
   bids: Bid[];
   location: string;
   category: string;
@@ -39,16 +45,33 @@ const ManageProjects: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [userType, setUserType] = useState<'client' | null>(null);
+
+  // Use VITE_API_URL from environment variables
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
 
   useEffect(() => {
-    const fetchProjects = async () => {
+    const fetchUserTypeAndProjects = async () => {
       try {
+        setIsLoading(true);
+        setError('');
+
+        // Get the token from localStorage
         const token = localStorage.getItem('token');
         if (!token) {
           throw new Error('You must be logged in to view your projects.');
         }
 
-        const response = await axios.get('http://localhost:5000/api/jobs/client/jobs', {
+        // Decode the token to get user_type
+        const decoded: DecodedToken = jwtDecode(token);
+        const userTypeFromToken = decoded.user_type;
+        if (userTypeFromToken !== 'client') {
+          throw new Error('This page is for clients only');
+        }
+        setUserType(userTypeFromToken);
+
+        const response = await axios.get(`${API_URL}/api/jobs/client/jobs`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -63,8 +86,20 @@ const ManageProjects: React.FC = () => {
           budget: parseFloat(project.budget),
           status: project.status,
           deadline: project.deadline,
-          created_at: project.createdAt,
-          bids: project.bids || [],
+          createdAt: project.createdAt, // Use createdAt
+          bids: project.bids.map((bid: any) => ({
+            id: bid.id,
+            engineer: {
+              id: bid.engineer.id,
+              username: bid.engineer.username,
+              email: bid.engineer.email,
+            },
+            bid_amount: parseFloat(bid.bid_amount),
+            delivery_days: bid.delivery_days,
+            cover_letter: bid.cover_letter,
+            status: bid.status,
+            createdAt: bid.createdAt, // Use createdAt
+          })) || [],
           location: project.location,
           category: project.category,
           duration: project.duration,
@@ -76,19 +111,16 @@ const ManageProjects: React.FC = () => {
       } catch (err) {
         if (axios.isAxiosError(err)) {
           console.error('Error fetching projects:', err.response ? err.response.data : err.message);
-        } else {
-          console.error('Error fetching projects:', err);
-        }
-        if (axios.isAxiosError(err)) {
           setError(err.response?.data?.message || err.message || 'Failed to fetch projects. Please try again.');
         } else {
-          setError('An unexpected error occurred. Please try again.');
+          console.error('Error fetching projects:', err);
+          setError((err as Error).message || 'An unexpected error occurred. Please try again.');
         }
         setIsLoading(false);
       }
     };
 
-    fetchProjects();
+    fetchUserTypeAndProjects();
   }, []);
 
   const handleAcceptBid = async (jobId: number, bidId: number) => {
@@ -99,7 +131,7 @@ const ManageProjects: React.FC = () => {
       }
 
       const response = await axios.post(
-        `http://localhost:5000/api/jobs/${jobId}/bids/${bidId}/accept`,
+        `${API_URL}/api/jobs/${jobId}/bids/${bidId}/accept`,
         {},
         {
           headers: {
@@ -131,13 +163,14 @@ const ManageProjects: React.FC = () => {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         console.error('Error accepting bid:', err.response ? err.response.data : err.message);
-      } else {
-        console.error('Error accepting bid:', err);
-      }
-      if (axios.isAxiosError(err)) {
         setError(err.response?.data?.message || err.message || 'Failed to accept bid. Please try again.');
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        console.error('Error accepting bid:', err);
+        if (err instanceof Error) {
+          setError(err.message || 'An unexpected error occurred. Please try again.');
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
       }
     }
   };
@@ -189,6 +222,18 @@ const ManageProjects: React.FC = () => {
         return status;
     }
   };
+
+  if (!userType) {
+    return (
+      <div className="min-h-screen flex flex-col pt-12">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center bg-gray-50">
+          <div className="text-red-500 text-center">{error || 'Loading user data...'}</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col pt-20">
@@ -326,7 +371,7 @@ const ManageProjects: React.FC = () => {
                       </div>
                       <div className="flex items-center mb-2">
                         <span className="text-sm font-medium text-gray-500 w-32">Created:</span>
-                        <span>{formatDate(project.created_at)}</span>
+                        <span>{formatDate(project.createdAt)}</span>
                       </div>
                       <div className="flex items-center mb-2">
                         <span className="text-sm font-medium text-gray-500 w-32">Deadline:</span>
@@ -348,7 +393,7 @@ const ManageProjects: React.FC = () => {
                                 <p><strong>Delivery Days:</strong> {bid.delivery_days}</p>
                                 <p><strong>Cover Letter:</strong> {bid.cover_letter}</p>
                                 <p><strong>Status:</strong> {bid.status}</p>
-                                <p><strong>Submitted:</strong> {formatDate(bid.submitted_date)}</p>
+                                <p><strong>Submitted:</strong> {formatDate(bid.createdAt)}</p>
                                 {project.status === 'open' && bid.status === 'pending' && (
                                   <button
                                     onClick={() => handleAcceptBid(project.id, bid.id)}
