@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+// Removed duplicate import of axios
+import { jwtDecode } from 'jwt-decode'; // Import jwt-decode as a named import
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
+import axios, { AxiosError } from 'axios';
+
+interface DecodedToken {
+  id: number;
+  user_type: 'client' | 'engineer' | 'admin';
+}
 
 interface Bid {
   id: number;
@@ -16,7 +23,7 @@ interface Bid {
   delivery_days: number;
   cover_letter: string;
   status: string;
-  submitted_date: string;
+  createdAt: string; // Changed from submitted_date to createdAt
 }
 
 interface ProjectDetail {
@@ -26,7 +33,7 @@ interface ProjectDetail {
   budget: number;
   status: string;
   deadline: string;
-  created_at: string;
+  createdAt: string; // Changed from created_at to createdAt
   location: string;
   category: string;
   duration: number;
@@ -39,16 +46,33 @@ const ClientProjectDetails: React.FC = () => {
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [userType, setUserType] = useState<'client' | null>(null);
+
+  // Use VITE_API_URL from environment variables
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
 
   useEffect(() => {
-    const fetchProject = async () => {
+    const fetchUserTypeAndProject = async () => {
       try {
+        setIsLoading(true);
+        setError('');
+
+        // Get the token from localStorage
         const token = localStorage.getItem('token');
         if (!token) {
           throw new Error('You must be logged in to view project details.');
         }
 
-        const response = await axios.get(`http://localhost:5000/api/jobs/${id}`, {
+        // Decode the token to get user_type
+        const decoded: DecodedToken = jwtDecode(token);
+        const userTypeFromToken = decoded.user_type;
+        if (userTypeFromToken !== 'client') {
+          throw new Error('This page is for clients only');
+        }
+        setUserType(userTypeFromToken);
+
+        const response = await axios.get(`${API_URL}/api/jobs/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -63,12 +87,24 @@ const ClientProjectDetails: React.FC = () => {
           budget: parseFloat(response.data.budget),
           status: response.data.status,
           deadline: response.data.deadline,
-          created_at: response.data.createdAt,
+          createdAt: response.data.createdAt, // Use createdAt
           location: response.data.location,
           category: response.data.category,
           duration: response.data.duration,
           requiredSkills: response.data.requiredSkills || [],
-          bids: response.data.bids || [],
+          bids: response.data.bids.map((bid: any) => ({
+            id: bid.id,
+            engineer: {
+              id: bid.engineer.id,
+              username: bid.engineer.username,
+              email: bid.engineer.email,
+            },
+            bid_amount: parseFloat(bid.bid_amount),
+            delivery_days: bid.delivery_days,
+            cover_letter: bid.cover_letter,
+            status: bid.status,
+            createdAt: bid.createdAt, // Use createdAt
+          })) || [],
         };
 
         setProject(projectData);
@@ -76,19 +112,36 @@ const ClientProjectDetails: React.FC = () => {
       } catch (err) {
         if (axios.isAxiosError(err)) {
           console.error('Error fetching project:', err.response ? err.response.data : err.message);
-        } else {
-          console.error('Error fetching project:', err);
-        }
-        if (axios.isAxiosError(err)) {
           setError(err.response?.data?.message || err.message || 'Failed to fetch project details. Please try again.');
         } else {
-          setError('An unexpected error occurred. Please try again.');
+          console.error('Error fetching project:', err);
+          if (err instanceof Error) {
+            if (err instanceof Error) {
+              if (err instanceof Error) {
+                if (err instanceof Error) {
+                  if (err instanceof Error) {
+                    setError(err.message || 'An unexpected error occurred. Please try again.');
+                  } else {
+                    setError('An unexpected error occurred. Please try again.');
+                  }
+                } else {
+                  setError('An unexpected error occurred. Please try again.');
+                }
+              } else {
+                setError('An unexpected error occurred. Please try again.');
+              }
+            } else {
+              setError('An unexpected error occurred. Please try again.');
+            }
+          } else {
+            setError('An unexpected error occurred. Please try again.');
+          }
         }
         setIsLoading(false);
       }
     };
 
-    fetchProject();
+    fetchUserTypeAndProject();
   }, [id]);
 
   const handleAcceptBid = async (jobId: number, bidId: number) => {
@@ -97,9 +150,9 @@ const ClientProjectDetails: React.FC = () => {
       if (!token) {
         throw new Error('You must be logged in to accept a bid.');
       }
-
+  
       const response = await axios.post(
-        `http://localhost:5000/api/jobs/${jobId}/bids/${bidId}/accept`,
+        `${API_URL}/api/jobs/${jobId}/bids/${bidId}/accept`,
         {},
         {
           headers: {
@@ -107,38 +160,57 @@ const ClientProjectDetails: React.FC = () => {
           },
         }
       );
-
+  
       console.log('Bid accepted:', response.data);
-
-      // Update the project state
-      if (project) {
-        const updatedProject: ProjectDetail = {
-          ...project,
+  
+      // Refresh the projects list
+      setProject((prevProject) => {
+        if (!prevProject) return null;
+        if (prevProject.id === jobId) {
+          return {
+            ...prevProject,
+            status: 'in-progress',
+            bids: prevProject.bids.map((bid) => {
+              if (bid.id === bidId) {
+                return { ...bid, status: 'accepted' };
+              }
+              return { ...bid, status: bid.status === 'pending' ? 'rejected' : bid.status };
+            }),
+          };
+        }
+        return prevProject;
+      });
+  
+      setProject((prevProject) => {
+        if (!prevProject) return null;
+        return {
+          ...prevProject,
           status: 'in-progress',
-          bids: project.bids.map(bid => {
+          bids: prevProject.bids.map((bid) => {
             if (bid.id === bidId) {
               return { ...bid, status: 'accepted' };
             }
             return { ...bid, status: bid.status === 'pending' ? 'rejected' : bid.status };
           }),
         };
-        setProject(updatedProject);
-      }
-    } catch (err) {
+      });
+    } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        console.error('Error accepting bid:', err.response ? err.response.data : err.message);
+        const axiosError = err as AxiosError<{ message?: string }>;
+        console.error('Error accepting bid:', axiosError.response ? axiosError.response.data : axiosError.message);
+        setError(axiosError.response?.data?.message || axiosError.message || 'Failed to accept bid. Please try again.');
       } else {
-        console.error('Error accepting bid:', err);
-      }
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || err.message || 'Failed to accept bid. Please try again.');
-      } else {
-        setError('An unexpected error occurred. Please try again.');
+        const error = err as Error;
+        console.error('Error accepting bid:', error);
+        setError(error.message || 'An unexpected error occurred. Please try again.');
       }
     }
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString || isNaN(new Date(dateString).getTime())) {
+      return 'Invalid Date';
+    }
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
@@ -170,7 +242,7 @@ const ClientProjectDetails: React.FC = () => {
     );
   }
 
-  if (error || !project) {
+  if (error || !project || !userType) {
     return (
       <div className="min-h-screen flex flex-col pt-20">
         <Navbar />
@@ -236,7 +308,7 @@ const ClientProjectDetails: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-1">Created</h3>
-                    <p className="text-gray-800">{formatDate(project.created_at)}</p>
+                    <p className="text-gray-800">{formatDate(project.createdAt)}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-1">Deadline</h3>
@@ -284,7 +356,7 @@ const ClientProjectDetails: React.FC = () => {
                         <p><strong>Delivery Days:</strong> {bid.delivery_days}</p>
                         <p><strong>Cover Letter:</strong> {bid.cover_letter}</p>
                         <p><strong>Status:</strong> {bid.status}</p>
-                        <p><strong>Submitted:</strong> {formatDate(bid.submitted_date)}</p>
+                        <p><strong>Submitted:</strong> {formatDate(bid.createdAt)}</p>
                         {project.status === 'open' && bid.status === 'pending' && (
                           <button
                             onClick={() => handleAcceptBid(project.id, bid.id)}
