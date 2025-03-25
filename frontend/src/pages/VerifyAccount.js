@@ -9,7 +9,7 @@ function VerifyAccount() {
     const verifyUser = async () => {
       const token = searchParams.get('token');
       try {
-        const res = await axios.get(`http://localhost:5000/api/auth/verify?token=${token}`);
+        const res = await axios.get(`https://levkonnect-backend.onrender.com/api/auth/verify?token=${token}`);
         alert(res.data.message);
       } catch (err) {
         alert("Verification failed");
