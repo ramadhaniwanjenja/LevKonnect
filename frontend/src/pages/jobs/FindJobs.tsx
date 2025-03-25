@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode'; // Import jwt-decode as a named import
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
+
+interface DecodedToken {
+  id: number;
+  user_type: 'client' | 'engineer' | 'admin';
+}
 
 interface Job {
   id: number;
@@ -26,7 +32,12 @@ const FindJobs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [error, setError] = useState<string | null>(null);
-  
+  const [userType, setUserType] = useState<'engineer' | null>(null);
+
+  // Use VITE_API_URL from environment variables
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
+
   // Categories for filtering
   const categories = [
     'All Categories',
@@ -39,20 +50,30 @@ const FindJobs: React.FC = () => {
     'Power Distribution',
     'Energy Audit',
     'Energy Consulting',
-    'Maintenance & Repair'
+    'Maintenance & Repair',
   ];
-  
+
   useEffect(() => {
-    const fetchJobs = async () => {
+    const fetchUserTypeAndJobs = async () => {
       try {
         setIsLoading(true);
         setError(null);
+
+        // Get the token from localStorage
         const token = localStorage.getItem('token');
         if (!token) {
           throw new Error('You must be logged in to view jobs.');
         }
 
-        const response = await axios.get('http://localhost:5000/api/jobs/engineer/recommended', {
+        // Decode the token to get user_type
+        const decoded: DecodedToken = jwtDecode(token);
+        const userTypeFromToken = decoded.user_type;
+        if (userTypeFromToken !== 'engineer') {
+          throw new Error('This page is for engineers only');
+        }
+        setUserType(userTypeFromToken);
+
+        const response = await axios.get(`${API_URL}/api/jobs/engineer/recommended`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -71,9 +92,9 @@ const FindJobs: React.FC = () => {
           location: job.location,
           budget: job.budget,
           duration: job.duration,
-          postedDate: job.createdAt, // Use createdAt from the API response
+          postedDate: job.createdAt,
           deadline: job.deadline,
-          requiredSkills: job.requiredSkills || [], // Use requiredSkills (camelCase) and default to empty array if undefined
+          requiredSkills: job.requiredSkills || [],
           clientName: job.client?.username || 'Unknown Client',
           clientRating: 4.5, // Placeholder since we don't have client ratings in the database yet
         }));
@@ -83,13 +104,10 @@ const FindJobs: React.FC = () => {
       } catch (err) {
         if (axios.isAxiosError(err)) {
           console.error('Error fetching jobs:', err.response ? err.response.data : err.message);
-        } else {
-          console.error('Error fetching jobs:', err);
-        }
-        if (axios.isAxiosError(err)) {
           setError(err.response?.data?.message || err.message || 'Failed to fetch jobs. Please try again.');
         } else {
-          setError('An unexpected error occurred. Please try again.');
+          console.error('Error fetching jobs:', err);
+          setError((err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.'));
         }
         setJobs([]);
         setFilteredJobs([]);
@@ -98,43 +116,55 @@ const FindJobs: React.FC = () => {
       }
     };
 
-    fetchJobs();
+    fetchUserTypeAndJobs();
   }, []);
-  
+
   // Filter jobs based on search term and category
   useEffect(() => {
     let results = jobs;
-    
+
     if (searchTerm) {
-      results = results.filter(job => 
+      results = results.filter(job =>
         job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         job.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (job.requiredSkills && job.requiredSkills.some(skill => 
+        (job.requiredSkills && job.requiredSkills.some(skill =>
           skill.toLowerCase().includes(searchTerm.toLowerCase())
         ))
       );
     }
-    
+
     if (selectedCategory && selectedCategory !== 'All Categories') {
       results = results.filter(job => job.category === selectedCategory);
     }
-    
+
     setFilteredJobs(results);
   }, [searchTerm, selectedCategory, jobs]);
-  
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
-  
+
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedCategory(e.target.value);
   };
-  
+
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
-  
+
+  if (!userType) {
+    return (
+      <div className="min-h-screen flex flex-col pt-12">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center bg-gray-50">
+          <div className="text-red-500 text-center">Loading user data...</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col pt-15">
       <Navbar />
