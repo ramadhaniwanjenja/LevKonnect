@@ -44,6 +44,8 @@ const AdminDashboard: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [error, setError] = useState<string>('');
 
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -56,7 +58,7 @@ const AdminDashboard: React.FC = () => {
         }
     
         // Fetch users from backend
-        const usersResponse = await axios.get('http://localhost:5000/api/users/admin/users', {
+        const usersResponse = await axios.get('${API_URL}/api/users/admin/users', {
           headers: { Authorization: `Bearer ${token}` },
         });
     
@@ -77,7 +79,7 @@ const AdminDashboard: React.FC = () => {
         setUsers(transformedUsers);
     
         // Fetch jobs from backend
-        const jobsResponse = await axios.get('http://localhost:5000/api/jobs/all', {
+        const jobsResponse = await axios.get('${API_URL}/api/jobs/all', {
           headers: { Authorization: `Bearer ${token}` },
         });
     
@@ -168,7 +170,7 @@ const AdminDashboard: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:5000/api/users/${userId}/status`,
+        `${API_URL}/api/users/${userId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -185,7 +187,7 @@ const AdminDashboard: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:5000/api/jobs/${jobId}`,
+        `${API_URL}/api/jobs/${jobId}`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
