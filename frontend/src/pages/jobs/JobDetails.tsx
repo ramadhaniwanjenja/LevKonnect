@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode'; // Import jwt-decode as a named import to decode the token
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
+
+interface DecodedToken {
+  id: number;
+  user_type: 'client' | 'engineer' | 'admin';
+}
 
 interface JobDetail {
   id: number;
@@ -35,18 +41,33 @@ const JobDetails: React.FC = () => {
   const [coverLetter, setCoverLetter] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [userType, setUserType] = useState<'engineer' | null>(null);
+
+  // Use VITE_API_URL from environment variables
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
 
   useEffect(() => {
-    const fetchJob = async () => {
+    const fetchUserTypeAndJob = async () => {
       try {
         setIsLoading(true);
         setError(null);
+
+        // Get the token from localStorage
         const token = localStorage.getItem('token');
         if (!token) {
           throw new Error('You must be logged in to view job details.');
         }
 
-        const response = await axios.get(`http://localhost:5000/api/jobs/${id}`, {
+        // Decode the token to get user_type
+        const decoded: DecodedToken = jwtDecode(token);
+        const userTypeFromToken = decoded.user_type;
+        if (userTypeFromToken !== 'engineer') {
+          throw new Error('This page is for engineers only');
+        }
+        setUserType(userTypeFromToken);
+
+        const response = await axios.get(`${API_URL}/api/jobs/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -75,20 +96,17 @@ const JobDetails: React.FC = () => {
       } catch (err) {
         if (axios.isAxiosError(err)) {
           console.error('Error fetching job:', err.response ? err.response.data : err.message);
-        } else {
-          console.error('Error fetching job:', err);
-        }
-        if (axios.isAxiosError(err)) {
           setError(err.response?.data?.message || err.message || 'Failed to fetch job details. Please try again.');
         } else {
-          setError('An unexpected error occurred. Please try again.');
+          console.error('Error fetching job:', err);
+          setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.');
         }
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchJob();
+    fetchUserTypeAndJob();
   }, [id]);
 
   const formatDate = (dateString: string) => {
@@ -98,7 +116,7 @@ const JobDetails: React.FC = () => {
 
   const handleBidSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     // Validate form
     const newErrors: Record<string, string> = {};
     if (!bidAmount.trim()) {
@@ -106,21 +124,21 @@ const JobDetails: React.FC = () => {
     } else if (isNaN(Number(bidAmount)) || Number(bidAmount) <= 0) {
       newErrors.bidAmount = 'Please enter a valid amount';
     }
-  
+
     if (!deliveryDays.trim()) {
       newErrors.deliveryDays = 'Delivery time is required';
     } else if (isNaN(Number(deliveryDays)) || Number(deliveryDays) <= 0) {
       newErrors.deliveryDays = 'Please enter a valid number of days';
     }
-  
+
     if (!coverLetter.trim()) {
       newErrors.coverLetter = 'Cover letter is required';
     } else if (coverLetter.length < 100) {
       newErrors.coverLetter = 'Cover letter should be at least 100 characters';
     }
-  
+
     setErrors(newErrors);
-  
+
     if (Object.keys(newErrors).length === 0) {
       try {
         setIsSubmitting(true);
@@ -128,7 +146,7 @@ const JobDetails: React.FC = () => {
         if (!token) {
           throw new Error('You must be logged in to submit a bid.');
         }
-  
+
         console.log('Submitting bid with payload:', {
           job_id: id,
           bid_amount: Number(bidAmount),
@@ -136,7 +154,7 @@ const JobDetails: React.FC = () => {
           cover_letter: coverLetter,
         });
         await axios.post(
-          'http://localhost:5000/api/bids',
+          `${API_URL}/api/bids`,
           {
             job_id: id,
             bid_amount: Number(bidAmount),
@@ -149,24 +167,37 @@ const JobDetails: React.FC = () => {
             },
           }
         );
-  
+
         navigate('/bid-submitted');
       } catch (err) {
         if (axios.isAxiosError(err)) {
           console.error('Error submitting bid:', err.response ? err.response.data : err.message);
+          setErrors({
+            submit: err.response?.data?.message || err.message || 'Failed to submit bid. Please try again.',
+          });
         } else {
           console.error('Error submitting bid:', err);
+          setErrors({
+            submit: err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.',
+          });
         }
-        setErrors({
-          submit: axios.isAxiosError(err) 
-            ? err.response?.data?.message || err.message || 'Failed to submit bid. Please try again.' 
-            : 'An unexpected error occurred. Please try again.',
-        });
       } finally {
         setIsSubmitting(false);
       }
     }
   };
+
+  if (!userType) {
+    return (
+      <div className="min-h-screen flex flex-col pt-12">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center bg-gray-50">
+          <div className="text-red-500 text-center">Loading user data...</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -187,7 +218,7 @@ const JobDetails: React.FC = () => {
         <div className="flex-grow flex items-center justify-center">
           <div className="text-center p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Error</h2>
-            <p className="text-gray-600 mb-6">{error || 'The job you\'re looking for doesn\'t exist or has been removed.'}</p>
+            <p className="text-gray-600 mb-6">{error || "The job you're looking for doesn't exist or has been removed."}</p>
             <Link to="/find-jobs" className="px-4 py-2 bg-green-600 text-white rounded-md">
               Browse Available Jobs
             </Link>
@@ -293,67 +324,67 @@ const JobDetails: React.FC = () => {
                   <h2 className="text-lg font-semibold text-gray-800 mb-4">Submit Your Proposal</h2>
                   {errors.submit && <p className="text-red-500 mb-4 text-sm">{errors.submit}</p>}
                   <form onSubmit={handleBidSubmit} className="space-y-4">
-  <div>
-    <label htmlFor="bidAmount" className="block text-sm font-medium text-gray-700">
-      Bid Amount ($)
-    </label>
-    <input
-      type="number"
-      id="bidAmount"
-      name="bidAmount" // Add name attribute
-      value={bidAmount}
-      onChange={(e) => setBidAmount(e.target.value)}
-      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-      placeholder="Enter your bid amount"
-      disabled={isSubmitting}
-    />
-    {errors.bidAmount && <p className="text-red-500 text-sm mt-1">{errors.bidAmount}</p>}
-  </div>
+                    <div>
+                      <label htmlFor="bidAmount" className="block text-sm font-medium text-gray-700">
+                        Bid Amount ($)
+                      </label>
+                      <input
+                        type="number"
+                        id="bidAmount"
+                        name="bidAmount"
+                        value={bidAmount}
+                        onChange={(e) => setBidAmount(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                        placeholder="Enter your bid amount"
+                        disabled={isSubmitting}
+                      />
+                      {errors.bidAmount && <p className="text-red-500 text-sm mt-1">{errors.bidAmount}</p>}
+                    </div>
 
-  <div>
-    <label htmlFor="deliveryDays" className="block text-sm font-medium text-gray-700">
-      Delivery Time (days)
-    </label>
-    <input
-      type="number"
-      id="deliveryDays"
-      name="deliveryDays" // Add name attribute
-      value={deliveryDays}
-      onChange={(e) => setDeliveryDays(e.target.value)}
-      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-      placeholder="Enter delivery time in days"
-      disabled={isSubmitting}
-    />
-    {errors.deliveryDays && <p className="text-red-500 text-sm mt-1">{errors.deliveryDays}</p>}
-  </div>
+                    <div>
+                      <label htmlFor="deliveryDays" className="block text-sm font-medium text-gray-700">
+                        Delivery Time (days)
+                      </label>
+                      <input
+                        type="number"
+                        id="deliveryDays"
+                        name="deliveryDays"
+                        value={deliveryDays}
+                        onChange={(e) => setDeliveryDays(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                        placeholder="Enter delivery time in days"
+                        disabled={isSubmitting}
+                      />
+                      {errors.deliveryDays && <p className="text-red-500 text-sm mt-1">{errors.deliveryDays}</p>}
+                    </div>
 
-  <div>
-    <label htmlFor="coverLetter" className="block text-sm font-medium text-gray-700">
-      Cover Letter
-    </label>
-    <textarea
-      id="coverLetter"
-      name="coverLetter" // Add name attribute
-      value={coverLetter}
-      onChange={(e) => setCoverLetter(e.target.value)}
-      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-      rows={5}
-      placeholder="Write a cover letter to the client"
-      disabled={isSubmitting}
-    />
-    {errors.coverLetter && <p className="text-red-500 text-sm mt-1">{errors.coverLetter}</p>}
-  </div>
+                    <div>
+                      <label htmlFor="coverLetter" className="block text-sm font-medium text-gray-700">
+                        Cover Letter
+                      </label>
+                      <textarea
+                        id="coverLetter"
+                        name="coverLetter"
+                        value={coverLetter}
+                        onChange={(e) => setCoverLetter(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                        rows={5}
+                        placeholder="Write a cover letter to the client"
+                        disabled={isSubmitting}
+                      />
+                      {errors.coverLetter && <p className="text-red-500 text-sm mt-1">{errors.coverLetter}</p>}
+                    </div>
 
-  {errors.submit && <p className="text-red-500 text-sm">{errors.submit}</p>}
+                    {errors.submit && <p className="text-red-500 text-sm">{errors.submit}</p>}
 
-  <button
-    type="submit"
-    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400"
-    disabled={isSubmitting}
-  >
-    {isSubmitting ? 'Submitting...' : 'Submit Proposal'}
-  </button>
-</form>
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Submit Proposal'}
+                    </button>
+                  </form>
                 </div>
               )}
             </div>
