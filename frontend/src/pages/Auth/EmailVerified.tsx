@@ -11,6 +11,10 @@ const EmailVerified: React.FC = () => {
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState('');
 
+  // Use VITE_API_URL from environment variables
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
+
   // Extract token from URL query parameters
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -25,13 +29,17 @@ const EmailVerified: React.FC = () => {
 
   const verifyEmail = async (token: string) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/auth/verify-email?token=${token}`);
+      const response = await axios.get(`${API_URL}/api/auth/verify-email?token=${token}`);
       if (response.status === 200) {
         setVerified(true);
         setTimeout(() => navigate('/dashboard'), 3000);
       }
     } catch (err) {
-      setError('Failed to verify email. The token may be invalid or expired.');
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'Failed to verify email. The token may be invalid or expired.');
+      } else {
+        setError('An unexpected error occurred');
+      }
     }
   };
 
