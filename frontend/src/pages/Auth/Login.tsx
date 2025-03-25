@@ -17,8 +17,8 @@ const Login: React.FC = () => {
   const [apiError, setApiError] = useState('');
 
   // Get the API URL from the environment variable (Vite uses import.meta.env)
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData({
