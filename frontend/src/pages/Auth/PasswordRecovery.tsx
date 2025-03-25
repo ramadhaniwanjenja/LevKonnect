@@ -16,6 +16,10 @@ const PasswordRecovery: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
+  // Use VITE_API_URL from environment variables
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
+
   // Check for token in URL to skip to reset stage
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -28,12 +32,16 @@ const PasswordRecovery: React.FC = () => {
 
   const verifyResetToken = async (token: string) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/auth/verify-reset-token?token=${token}`);
+      const response = await axios.get(`${API_URL}/api/auth/verify-reset-token?token=${token}`);
       if (response.status === 200) {
         setStage('reset');
       }
     } catch (err) {
-      setError('Invalid or expired reset token. Please request a new reset link.');
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'Invalid or expired reset token. Please request a new reset link.');
+      } else {
+        setError('An unexpected error occurred');
+      }
       setStage('request');
     }
   };
@@ -50,17 +58,20 @@ const PasswordRecovery: React.FC = () => {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/request-password-reset', { email });
+      const response = await axios.post(`${API_URL}/api/auth/request-password-reset`, { email });
       if (response.status === 200) {
         setStage('verify');
       }
     } catch (err) {
-      setError((err as any).response?.data?.message || 'An error occurred. Please try again.');
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'An error occurred. Please try again.');
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
-
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +95,7 @@ const PasswordRecovery: React.FC = () => {
     setPasswordError('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/reset-password', {
+      const response = await axios.post(`${API_URL}/api/auth/reset-password`, {
         token,
         newPassword,
       });
@@ -92,7 +103,11 @@ const PasswordRecovery: React.FC = () => {
         navigate('/password-reset-success');
       }
     } catch (err) {
-      setPasswordError((err as any).response?.data?.message || 'An error occurred. Please try again.');
+      if (axios.isAxiosError(err)) {
+        setPasswordError(err.response?.data?.message || 'An error occurred. Please try again.');
+      } else {
+        setPasswordError('An unexpected error occurred');
+      }
     } finally {
       setIsSubmitting(false);
     }
