@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode'; // Import jwt-decode using named import
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 
+interface DecodedToken {
+  id: number;
+  user_type: 'client' | 'engineer' | 'admin';
+}
+
 const PostJob = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userType, setUserType] = useState<'client' | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   interface FormData {
     title: string;
@@ -18,6 +27,7 @@ const PostJob = () => {
     duration: string;
     requiredSkills: string[];
     deadline: string;
+    additionalInstructions: string; // Add additionalInstructions
   }
   
   const [formData, setFormData] = useState<FormData>({
@@ -28,9 +38,42 @@ const PostJob = () => {
     location: '',
     duration: '',
     requiredSkills: [],
-    deadline: ''
+    deadline: '',
+    additionalInstructions: '', // Initialize additionalInstructions
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Use VITE_API_URL from environment variables
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  console.log('API_URL being used:', API_URL);
+
+  useEffect(() => {
+    const checkUserType = () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found. Please log in.');
+        }
+
+        const decoded: DecodedToken = jwtDecode(token);
+        const userTypeFromToken = decoded.user_type;
+        if (userTypeFromToken !== 'client') {
+          throw new Error('This page is for clients only');
+        }
+        setUserType(userTypeFromToken);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message || 'An unexpected error occurred. Please try again.');
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+
+    checkUserType();
+  }, []);
 
   const categories = [
     'Solar Installation',
@@ -105,7 +148,7 @@ const PostJob = () => {
     const token = localStorage.getItem('token');
     console.log('Retrieved token:', token); // Debug
     if (!token) {
-      console.error('No token found!');
+      setErrors({ ...errors, submit: 'You must be logged in to post a job.' });
       return;
     }
 
@@ -113,16 +156,17 @@ const PostJob = () => {
       title: formData.title,
       category: formData.category,
       description: formData.description,
-      budget: formData.budget,
+      budget: Number(formData.budget), // Convert to number
       location: formData.location,
-      duration: formData.duration,
+      duration: Number(formData.duration), // Convert to number
       requiredSkills: formData.requiredSkills,
       deadline: formData.deadline,
+      additionalInstructions: formData.additionalInstructions || undefined, // Include additionalInstructions
     };
 
     try {
       setIsSubmitting(true);
-      const response = await axios.post('http://localhost:5000/api/jobs/auth/jobs', payload, {
+      const response = await axios.post(`${API_URL}/api/jobs`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -131,12 +175,50 @@ const PostJob = () => {
       console.log('Job posted:', response.data);
       navigate('/job-posted-success');
     } catch (error) {
-      console.error('Error posting job:', (error as any).response ? (error as any).response.data : (error as any).message);
-      setErrors({ ...errors, submit: 'Failed to post job. Please try again.' });
+      if (axios.isAxiosError(error)) {
+        console.error('Error posting job:', error.response ? error.response.data : error.message);
+        setErrors({ ...errors, submit: error.response?.data?.message || error.message || 'Failed to post job. Please try again.' });
+      } else {
+        console.error('Error posting job:', error);
+        setErrors({ ...errors, submit: 'An unexpected error occurred. Please try again.' });
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (loadingUser) {
+    return (
+      <div className="min-h-screen flex flex-col pt-12">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error || !userType) {
+    return (
+      <div className="min-h-screen flex flex-col pt-12">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center bg-gray-50">
+          <div className="text-center p-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Error</h2>
+            <p className="text-gray-600 mb-6">{error || 'You do not have permission to access this page.'}</p>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-4 py-2 bg-green-600 text-white rounded-md"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col pt-15">
@@ -271,8 +353,9 @@ const PostJob = () => {
                   name="additionalInstructions"
                   rows={3}
                   placeholder="Any special requirements or details for potential bidders..."
-                  className="w-full p-3 border border-gray-300 rounded"
+                  value={formData.additionalInstructions}
                   onChange={handleInputChange}
+                  className="w-full p-3 border border-gray-300 rounded"
                 ></textarea>
               </div>
               <div className="flex justify-end">
