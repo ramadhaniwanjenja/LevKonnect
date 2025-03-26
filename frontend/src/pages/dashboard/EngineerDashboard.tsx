@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
 import axios, { AxiosError } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import Navbar from '../../components/Navbar';
@@ -12,6 +12,7 @@ interface DecodedToken {
 }
 
 const EngineerDashboard: React.FC = () => {
+  const navigate = useNavigate(); // Added for redirection
   const [userType, setUserType] = useState<'engineer' | null>(null);
   const [stats, setStats] = useState({
     activeProjects: 0,
@@ -36,13 +37,16 @@ const EngineerDashboard: React.FC = () => {
         // Get the token from localStorage
         const token = localStorage.getItem('token');
         if (!token) {
+          navigate('/login'); // Redirect to login if no token
           throw new Error('No authentication token found');
         }
 
         // Decode the token to get user_type
         const decoded: DecodedToken = jwtDecode(token);
+        console.log('Decoded token:', decoded); // Log the decoded token
         const userTypeFromToken = decoded.user_type;
         if (userTypeFromToken !== 'engineer') {
+          navigate('/login'); // Redirect if not an engineer
           throw new Error('This dashboard is for engineers only');
         }
         setUserType(userTypeFromToken);
@@ -57,6 +61,7 @@ const EngineerDashboard: React.FC = () => {
         // Log the full URL to confirm
         const metricsUrl = `${API_URL}/api/dashboard/engineer-metrics`;
         console.log('Fetching metrics from:', metricsUrl);
+        console.log('Authorization header:', config.headers.Authorization);
 
         const metricsResponse = await axios.get(metricsUrl, config);
         console.log('API Response:', metricsResponse.data);
@@ -94,7 +99,7 @@ const EngineerDashboard: React.FC = () => {
     };
 
     fetchUserTypeAndDashboardData();
-  }, []);
+  }, [navigate]); // Added navigate to dependencies
 
   const renderActivityIcon = (type: string) => {
     switch (type) {
@@ -165,7 +170,7 @@ const EngineerDashboard: React.FC = () => {
                 
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-sm font-medium text-gray-500 mb-1">Total Earnings</h3>
-                  <p className="text-3xl font-bold text-gray-800">${stats.earnings}</p>
+                  <p className="text-3xl font-bold text-gray-800">${stats.earnings.toFixed(2)}</p>
                 </div>
               </div>
               
