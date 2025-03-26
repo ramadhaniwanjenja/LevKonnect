@@ -24,7 +24,8 @@
       "prettier",
       "prop-types",
       "react",
-      "react-dom"
+      "react-dom",
+      "vite/client"
     ]
   },
   "include": ["src"]
