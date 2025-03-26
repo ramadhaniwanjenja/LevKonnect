@@ -33,36 +33,35 @@ const EngineerDashboard: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
-
+  
         // Get the token from localStorage
         const token = localStorage.getItem('token');
+        console.log('Token from localStorage:', token); // Add this log
         if (!token) {
-          navigate('/login'); // Redirect to login if no token
+          navigate('/login');
           throw new Error('No authentication token found');
         }
-
+  
         // Decode the token to get user_type
         const decoded: DecodedToken = jwtDecode(token);
-        console.log('Decoded token:', decoded); // Log the decoded token
+        console.log('Decoded token:', decoded);
         const userTypeFromToken = decoded.user_type;
         if (userTypeFromToken !== 'engineer') {
-          navigate('/login'); // Redirect if not an engineer
+          navigate('/login');
           throw new Error('This dashboard is for engineers only');
         }
         setUserType(userTypeFromToken);
-
+  
         // Fetch metrics from the backend
         const config = {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         };
-
-        // Log the full URL to confirm
+        console.log('Config headers:', config.headers); // Add this log
+  
         const metricsUrl = `${API_URL}/api/dashboard/engineer-metrics`;
         console.log('Fetching metrics from:', metricsUrl);
-        console.log('Authorization header:', config.headers.Authorization);
-
         const metricsResponse = await axios.get(metricsUrl, config);
         console.log('API Response:', metricsResponse.data);
         setStats({
@@ -71,14 +70,14 @@ const EngineerDashboard: React.FC = () => {
           pendingBids: metricsResponse.data.pendingBids || 0,
           earnings: metricsResponse.data.earnings || 0,
         });
-
+  
         // Keep recent activity static for now
         setRecentActivity([
           { id: 1, type: 'job', title: 'New job matching your skills: Solar Panel Installation', date: '2025-03-06' },
           { id: 2, type: 'payment', title: 'Payment received for Energy Audit', date: '2025-03-04' },
           { id: 3, type: 'message', title: 'New message from TanzSolar Ltd.', date: '2025-03-02' },
         ]);
-
+  
         setIsLoading(false);
       } catch (err: unknown) {
         if (axios.isAxiosError(err)) {
@@ -97,9 +96,9 @@ const EngineerDashboard: React.FC = () => {
         setIsLoading(false);
       }
     };
-
+  
     fetchUserTypeAndDashboardData();
-  }, [navigate]); // Added navigate to dependencies
+  }, [navigate]);
 
   const renderActivityIcon = (type: string) => {
     switch (type) {
