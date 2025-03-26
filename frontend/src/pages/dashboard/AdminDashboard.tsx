@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
-import axios from 'axios';
+import axiosInstance from '../../axiosInstance'; // Import axiosInstance
+import { isAxiosError } from 'axios'; // Import isAxiosError
 import { jwtDecode } from 'jwt-decode';
 
-// Types
+// Types (unchanged)
 interface User {
   id: number;
   name: string;
@@ -54,13 +55,9 @@ const AdminDashboard: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [error, setError] = useState<string>('');
 
-  // Pagination states
   const [userPage, setUserPage] = useState(1);
   const [jobPage, setJobPage] = useState(1);
   const itemsPerPage = 10;
-
-  const API_URL = process.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
-  console.log('API_URL being used:', API_URL);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,7 +71,6 @@ const AdminDashboard: React.FC = () => {
           throw new Error('No authentication token found. Please log in.');
         }
 
-        // Decode the token to check user_type
         const decoded: DecodedToken = jwtDecode(token);
         console.log('Decoded token:', decoded);
         if (decoded.user_type !== 'admin') {
@@ -82,24 +78,15 @@ const AdminDashboard: React.FC = () => {
           throw new Error('You do not have permission to access this dashboard. Please log in as an admin.');
         }
 
-        const config = {
-          headers: { Authorization: `Bearer ${token}` },
-        };
-        console.log('Authorization header:', config.headers.Authorization);
-
-        // Fetch users from backend
-        const usersUrl = `${API_URL}/api/users/admin/users?page=${userPage}&limit=${itemsPerPage}`; // Added pagination params
-        console.log('Fetching users from:', usersUrl);
-        const usersResponse = await axios.get(usersUrl, config);
+        // Fetch users using axiosInstance (no need for config, token is handled by interceptor)
+        const usersResponse = await axiosInstance.get(`/api/users/admin/users?page=${userPage}&limit=${itemsPerPage}`);
         console.log('Users API Response:', usersResponse.data);
 
-        // Check for error response
         if (usersResponse.data.message === 'Requires Admin Role!') {
           navigate('/login');
           throw new Error('You do not have permission to access this dashboard. Please log in as an admin.');
         }
 
-        // Transform users data to match the User interface
         const transformedUsers: User[] = (usersResponse.data.data || []).map((user: any) => ({
           id: user.id,
           name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
@@ -110,13 +97,10 @@ const AdminDashboard: React.FC = () => {
         }));
         setUsers(transformedUsers);
 
-        // Fetch jobs from backend
-        const jobsUrl = `${API_URL}/api/jobs/all`; // We can add pagination here if needed
-        console.log('Fetching jobs from:', jobsUrl);
-        const jobsResponse = await axios.get(jobsUrl, config);
+        // Fetch jobs using axiosInstance
+        const jobsResponse = await axiosInstance.get('/api/jobs/all');
         console.log('Jobs API Response:', jobsResponse.data);
 
-        // Transform jobs data to match the Job interface
         const transformedJobs: Job[] = (jobsResponse.data || []).map((job: any) => ({
           id: job.id,
           title: job.title,
@@ -129,8 +113,8 @@ const AdminDashboard: React.FC = () => {
         }));
         setJobs(transformedJobs);
 
-        // Calculate platform stats
-        const currentMonth = new Date().getMonth() + 1; // 1-12
+        // Calculate platform stats (unchanged)
+        const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
 
         const newUsersThisMonth = transformedUsers.filter(user => {
@@ -153,11 +137,10 @@ const AdminDashboard: React.FC = () => {
         };
         setStats(platformStats);
 
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        if (axios.isAxiosError(error)) {
+      } catch (error: any) {
+        if (isAxiosError(error)) {
           setError(error.response?.data?.message || error.message || 'Failed to load dashboard data');
-        } else if (error instanceof Error) {
+        } else if (typeof error === 'object' && error !== null && 'message' in error) {
           setError(error.message || 'Failed to load dashboard data');
         } else {
           setError('Failed to load dashboard data');
@@ -168,7 +151,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     fetchData();
-  }, [navigate, userPage]); // Added userPage to dependencies for pagination
+  }, [navigate, userPage]);
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -199,19 +182,13 @@ const AdminDashboard: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Paginate jobs for the Jobs tab
   const paginatedJobs = filteredJobs.slice((jobPage - 1) * itemsPerPage, jobPage * itemsPerPage);
 
   const changeUserStatus = async (userId: number, newStatus: 'active' | 'pending' | 'suspended') => {
     try {
-      const token = localStorage.getItem('token');
-      // Align with backend route: /api/users/admin/users/:id/deactivate
-      // For simplicity, we'll use a custom endpoint (you can create this in user.routes.js if needed)
-      await axios.put(
-        `${API_URL}/api/users/admin/users/${userId}/deactivate`,
-        { is_verified: newStatus === 'active' }, // Map status to is_verified
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axiosInstance.put(`/api/users/admin/users/${userId}/deactivate`, {
+        is_verified: newStatus === 'active',
+      });
       setUsers(users.map(user =>
         user.id === userId ? { ...user, status: newStatus } : user
       ));
@@ -223,13 +200,7 @@ const AdminDashboard: React.FC = () => {
 
   const changeJobStatus = async (jobId: number, newStatus: 'open' | 'assigned' | 'completed' | 'disputed') => {
     try {
-      const token = localStorage.getItem('token');
-      // Align with backend route: /api/jobs/:id
-      await axios.put(
-        `${API_URL}/api/jobs/${jobId}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axiosInstance.put(`/api/jobs/${jobId}`, { status: newStatus });
       setJobs(jobs.map(job =>
         job.id === jobId ? { ...job, status: newStatus } : job
       ));
@@ -239,6 +210,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // Rest of the component (unchanged)
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col pt-10">
