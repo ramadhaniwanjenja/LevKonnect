@@ -63,30 +63,31 @@ const AdminDashboard: React.FC = () => {
     const fetchData = async () => {
       setIsLoading(true);
       setError('');
-
+  
       try {
         const token = localStorage.getItem('token');
         if (!token) {
           navigate('/login');
           throw new Error('No authentication token found. Please log in.');
         }
-
+  
         const decoded: DecodedToken = jwtDecode(token);
-        console.log('Decoded token:', decoded);
+        console.log('Decoded token in AdminDashboard:', decoded);
         if (decoded.user_type !== 'admin') {
           navigate('/login');
           throw new Error('You do not have permission to access this dashboard. Please log in as an admin.');
         }
-
-        // Fetch users using axiosInstance (no need for config, token is handled by interceptor)
+  
+        // Fetch users using axiosInstance
+        console.log('Fetching users with URL:', `/api/users/admin/users?page=${userPage}&limit=${itemsPerPage}`); // Debug
         const usersResponse = await axiosInstance.get(`/api/users/admin/users?page=${userPage}&limit=${itemsPerPage}`);
         console.log('Users API Response:', usersResponse.data);
-
+  
         if (usersResponse.data.message === 'Requires Admin Role!') {
           navigate('/login');
           throw new Error('You do not have permission to access this dashboard. Please log in as an admin.');
         }
-
+  
         const transformedUsers: User[] = (usersResponse.data.data || []).map((user: any) => ({
           id: user.id,
           name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
@@ -96,11 +97,11 @@ const AdminDashboard: React.FC = () => {
           joinedDate: user.created_at || user.createdAt || new Date().toISOString(),
         }));
         setUsers(transformedUsers);
-
+  
         // Fetch jobs using axiosInstance
         const jobsResponse = await axiosInstance.get('/api/jobs/all');
         console.log('Jobs API Response:', jobsResponse.data);
-
+  
         const transformedJobs: Job[] = (jobsResponse.data || []).map((job: any) => ({
           id: job.id,
           title: job.title,
@@ -112,21 +113,21 @@ const AdminDashboard: React.FC = () => {
           postedDate: job.created_at || job.createdAt || new Date().toISOString(),
         }));
         setJobs(transformedJobs);
-
-        // Calculate platform stats (unchanged)
+  
+        // Calculate platform stats
         const currentMonth = new Date().getMonth() + 1;
         const currentYear = new Date().getFullYear();
-
+  
         const newUsersThisMonth = transformedUsers.filter(user => {
           const joinedDate = new Date(user.joinedDate);
           return joinedDate.getMonth() + 1 === currentMonth && joinedDate.getFullYear() === currentYear;
         }).length;
-
+  
         const activeJobs = transformedJobs.filter(job => job.status === 'open' || job.status === 'assigned').length;
         const completedJobs = transformedJobs.filter(job => job.status === 'completed').length;
         const totalRevenue = transformedJobs.reduce((sum, job) => sum + job.budget, 0);
         const pendingVerifications = transformedUsers.filter(user => user.status === 'pending').length;
-
+  
         const platformStats: PlatformStats = {
           totalUsers: transformedUsers.length,
           newUsersThisMonth,
@@ -136,11 +137,18 @@ const AdminDashboard: React.FC = () => {
           pendingVerifications,
         };
         setStats(platformStats);
-
-      } catch (error: any) {
+  
+      } catch (error) {
+        console.error('Error fetching data:', error);
         if (isAxiosError(error)) {
-          setError(error.response?.data?.message || error.message || 'Failed to load dashboard data');
-        } else if (typeof error === 'object' && error !== null && 'message' in error) {
+          if (isAxiosError(error)) {
+            setError(error.response?.data?.message || error.message || 'Failed to load dashboard data');
+          } else if (typeof error === 'object' && error !== null && 'message' in error) {
+            setError((error as any).message || 'Failed to load dashboard data');
+          } else {
+            setError('Failed to load dashboard data');
+          }
+        } else if (error instanceof Error) {
           setError(error.message || 'Failed to load dashboard data');
         } else {
           setError('Failed to load dashboard data');
@@ -149,7 +157,7 @@ const AdminDashboard: React.FC = () => {
         setIsLoading(false);
       }
     };
-
+  
     fetchData();
   }, [navigate, userPage]);
 
