@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
-import axios, { AxiosError } from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import axiosInstance from '../../axiosInstance';
 import { jwtDecode } from 'jwt-decode';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -12,7 +12,7 @@ interface DecodedToken {
 }
 
 const EngineerDashboard: React.FC = () => {
-  const navigate = useNavigate(); // Added for redirection
+  const navigate = useNavigate();
   const [userType, setUserType] = useState<'engineer' | null>(null);
   const [stats, setStats] = useState({
     activeProjects: 0,
@@ -24,7 +24,6 @@ const EngineerDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Use VITE_API_URL from environment variables
   const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
   console.log('API_URL being used:', API_URL);
 
@@ -33,16 +32,14 @@ const EngineerDashboard: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
-  
-        // Get the token from localStorage
+
         const token = localStorage.getItem('token');
-        console.log('Token from localStorage:', token); // Add this log
+        console.log('Token from localStorage:', token);
         if (!token) {
           navigate('/login');
           throw new Error('No authentication token found');
         }
-  
-        // Decode the token to get user_type
+
         const decoded: DecodedToken = jwtDecode(token);
         console.log('Decoded token:', decoded);
         const userTypeFromToken = decoded.user_type;
@@ -51,18 +48,8 @@ const EngineerDashboard: React.FC = () => {
           throw new Error('This dashboard is for engineers only');
         }
         setUserType(userTypeFromToken);
-  
-        // Fetch metrics from the backend
-        const config = {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        };
-        console.log('Config headers:', config.headers); // Add this log
-  
-        const metricsUrl = `${API_URL}/api/dashboard/engineer-metrics`;
-        console.log('Fetching metrics from:', metricsUrl);
-        const metricsResponse = await axios.get(metricsUrl, config);
+
+        const metricsResponse = await axiosInstance.get('/api/dashboard/engineer-metrics');
         console.log('API Response:', metricsResponse.data);
         setStats({
           activeProjects: metricsResponse.data.activeProjects || 0,
@@ -70,33 +57,27 @@ const EngineerDashboard: React.FC = () => {
           pendingBids: metricsResponse.data.pendingBids || 0,
           earnings: metricsResponse.data.earnings || 0,
         });
-  
-        // Keep recent activity static for now
+
         setRecentActivity([
           { id: 1, type: 'job', title: 'New job matching your skills: Solar Panel Installation', date: '2025-03-06' },
           { id: 2, type: 'payment', title: 'Payment received for Energy Audit', date: '2025-03-04' },
           { id: 3, type: 'message', title: 'New message from TanzSolar Ltd.', date: '2025-03-02' },
         ]);
-  
+
         setIsLoading(false);
       } catch (err: unknown) {
-        if (axios.isAxiosError(err)) {
-          const axiosError = err as AxiosError<{ message?: string }>;
-          console.error('Error fetching engineer dashboard data:', axiosError.response ? axiosError.response.data : axiosError);
-          setError(
-            axiosError.response?.data?.message ||
-            axiosError.message ||
-            'Failed to load dashboard data. Please try again later.'
-          );
+        console.error('Error fetching engineer dashboard data:', err);
+        if (typeof err === 'object' && err !== null && 'response' in err) {
+          const errorResponse = err as { response: { data?: { message?: string }; status: number } };
+          setError(errorResponse.response.data?.message || `Request failed with status code ${errorResponse.response.status}`);
         } else {
-          const error = err as Error;
-          console.error('Error fetching engineer dashboard data:', error);
-          setError(error.message || 'An unexpected error occurred. Please try again later.');
+          const errorMessage = err as { message?: string };
+          setError(errorMessage.message || 'Failed to load dashboard data. Please try again later.');
         }
         setIsLoading(false);
       }
     };
-  
+
     fetchUserTypeAndDashboardData();
   }, [navigate]);
 
@@ -150,7 +131,6 @@ const EngineerDashboard: React.FC = () => {
             <div className="text-red-500 text-center">{error}</div>
           ) : (
             <>
-              {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-sm font-medium text-gray-500 mb-1">Active Projects</h3>
@@ -173,7 +153,6 @@ const EngineerDashboard: React.FC = () => {
                 </div>
               </div>
               
-              {/* Recent Activity */}
               <div className="bg-white rounded-lg shadow mb-8">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="font-medium text-gray-800">Recent Activity</h2>
@@ -198,7 +177,6 @@ const EngineerDashboard: React.FC = () => {
                 </div>
               </div>
               
-              {/* Quick Actions */}
               <div className="bg-white rounded-lg shadow">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="font-medium text-gray-800">Quick Actions</h2>
