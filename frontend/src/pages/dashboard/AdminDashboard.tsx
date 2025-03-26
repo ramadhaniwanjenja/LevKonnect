@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 // Types
 interface User {
@@ -34,7 +35,15 @@ interface PlatformStats {
   pendingVerifications: number;
 }
 
+interface DecodedToken {
+  id: number;
+  user_type: 'client' | 'engineer' | 'admin';
+  iat: number;
+  exp: number;
+}
+
 const AdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'jobs' | 'content'>('overview');
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -44,29 +53,51 @@ const AdminDashboard: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [error, setError] = useState<string>('');
 
+  // Pagination states
+  const [userPage, setUserPage] = useState(1);
+  const [jobPage, setJobPage] = useState(1);
+  const itemsPerPage = 10;
+
   const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
   console.log('API_URL being used:', API_URL);
+
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       setError('');
-    
+
       try {
         const token = localStorage.getItem('token');
         if (!token) {
+          navigate('/login');
           throw new Error('No authentication token found. Please log in.');
         }
-    
-        // Fetch users from backend
-        const usersResponse = await axios.get('${API_URL}/api/users/admin/users', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-    
-        // Check for error response
-        if (usersResponse.data.message === 'Requires Admin Role!') {
+
+        // Decode the token to check user_type
+        const decoded: DecodedToken = jwtDecode(token);
+        console.log('Decoded token:', decoded);
+        if (decoded.user_type !== 'admin') {
+          navigate('/login');
           throw new Error('You do not have permission to access this dashboard. Please log in as an admin.');
         }
-    
+
+        const config = {
+          headers: { Authorization: `Bearer ${token}` },
+        };
+        console.log('Authorization header:', config.headers.Authorization);
+
+        // Fetch users from backend
+        const usersUrl = `${API_URL}/api/users/admin/users?page=${userPage}&limit=${itemsPerPage}`; // Added pagination params
+        console.log('Fetching users from:', usersUrl);
+        const usersResponse = await axios.get(usersUrl, config);
+        console.log('Users API Response:', usersResponse.data);
+
+        // Check for error response
+        if (usersResponse.data.message === 'Requires Admin Role!') {
+          navigate('/login');
+          throw new Error('You do not have permission to access this dashboard. Please log in as an admin.');
+        }
+
         // Transform users data to match the User interface
         const transformedUsers: User[] = (usersResponse.data.data || []).map((user: any) => ({
           id: user.id,
@@ -77,12 +108,13 @@ const AdminDashboard: React.FC = () => {
           joinedDate: user.created_at || user.createdAt || new Date().toISOString(),
         }));
         setUsers(transformedUsers);
-    
+
         // Fetch jobs from backend
-        const jobsResponse = await axios.get('${API_URL}/api/jobs/all', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-    
+        const jobsUrl = `${API_URL}/api/jobs/all`; // We can add pagination here if needed
+        console.log('Fetching jobs from:', jobsUrl);
+        const jobsResponse = await axios.get(jobsUrl, config);
+        console.log('Jobs API Response:', jobsResponse.data);
+
         // Transform jobs data to match the Job interface
         const transformedJobs: Job[] = (jobsResponse.data || []).map((job: any) => ({
           id: job.id,
@@ -95,21 +127,21 @@ const AdminDashboard: React.FC = () => {
           postedDate: job.created_at || job.createdAt || new Date().toISOString(),
         }));
         setJobs(transformedJobs);
-    
+
         // Calculate platform stats
         const currentMonth = new Date().getMonth() + 1; // 1-12
         const currentYear = new Date().getFullYear();
-    
+
         const newUsersThisMonth = transformedUsers.filter(user => {
           const joinedDate = new Date(user.joinedDate);
           return joinedDate.getMonth() + 1 === currentMonth && joinedDate.getFullYear() === currentYear;
         }).length;
-    
+
         const activeJobs = transformedJobs.filter(job => job.status === 'open' || job.status === 'assigned').length;
         const completedJobs = transformedJobs.filter(job => job.status === 'completed').length;
         const totalRevenue = transformedJobs.reduce((sum, job) => sum + job.budget, 0);
         const pendingVerifications = transformedUsers.filter(user => user.status === 'pending').length;
-    
+
         const platformStats: PlatformStats = {
           totalUsers: transformedUsers.length,
           newUsersThisMonth,
@@ -119,7 +151,7 @@ const AdminDashboard: React.FC = () => {
           pendingVerifications,
         };
         setStats(platformStats);
-    
+
       } catch (error) {
         console.error('Error fetching data:', error);
         if (axios.isAxiosError(error)) {
@@ -135,7 +167,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [navigate, userPage]); // Added userPage to dependencies for pagination
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -166,12 +198,17 @@ const AdminDashboard: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Paginate jobs for the Jobs tab
+  const paginatedJobs = filteredJobs.slice((jobPage - 1) * itemsPerPage, jobPage * itemsPerPage);
+
   const changeUserStatus = async (userId: number, newStatus: 'active' | 'pending' | 'suspended') => {
     try {
       const token = localStorage.getItem('token');
+      // Align with backend route: /api/users/admin/users/:id/deactivate
+      // For simplicity, we'll use a custom endpoint (you can create this in user.routes.js if needed)
       await axios.put(
-        `${API_URL}/api/users/${userId}/status`,
-        { status: newStatus },
+        `${API_URL}/api/users/admin/users/${userId}/deactivate`,
+        { is_verified: newStatus === 'active' }, // Map status to is_verified
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setUsers(users.map(user =>
@@ -186,6 +223,7 @@ const AdminDashboard: React.FC = () => {
   const changeJobStatus = async (jobId: number, newStatus: 'open' | 'assigned' | 'completed' | 'disputed') => {
     try {
       const token = localStorage.getItem('token');
+      // Align with backend route: /api/jobs/:id
       await axios.put(
         `${API_URL}/api/jobs/${jobId}`,
         { status: newStatus },
@@ -542,10 +580,18 @@ const AdminDashboard: React.FC = () => {
                     Showing {filteredUsers.length} of {users.length} users
                   </div>
                   <div className="flex space-x-2">
-                    <button className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50" disabled>
+                    <button
+                      onClick={() => setUserPage(prev => Math.max(prev - 1, 1))}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                      disabled={userPage === 1}
+                    >
                       Previous
                     </button>
-                    <button className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50" disabled>
+                    <button
+                      onClick={() => setUserPage(prev => prev + 1)}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                      disabled={filteredUsers.length < itemsPerPage}
+                    >
                       Next
                     </button>
                   </div>
@@ -602,7 +648,7 @@ const AdminDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredJobs.map(job => (
+                    {paginatedJobs.map(job => (
                       <tr key={job.id}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{job.title}</div>
@@ -665,7 +711,7 @@ const AdminDashboard: React.FC = () => {
                   </tbody>
                 </table>
 
-                {filteredJobs.length === 0 && (
+                {paginatedJobs.length === 0 && (
                   <div className="px-6 py-10 text-center">
                     <p className="text-gray-500">No jobs found matching your criteria.</p>
                   </div>
@@ -673,16 +719,47 @@ const AdminDashboard: React.FC = () => {
 
                 <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-between items-center">
                   <div className="text-sm text-gray-500">
-                    Showing {filteredJobs.length} of {jobs.length} jobs
+                    Showing {paginatedJobs.length} of {filteredJobs.length} jobs
                   </div>
                   <div className="flex space-x-2">
-                    <button className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50" disabled>
+                    <button
+                      onClick={() => setJobPage(prev => Math.max(prev - 1, 1))}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                      disabled={jobPage === 1}
+                    >
                       Previous
                     </button>
-                    <button className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50" disabled>
+                    <button
+                      onClick={() => setJobPage(prev => prev + 1)}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                      disabled={paginatedJobs.length < itemsPerPage}
+                    >
                       Next
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Content Tab Content */}
+          {activeTab === 'content' && (
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Manage Content</h2>
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <p className="text-gray-600 mb-4">
+                  This section will allow you to manage platform content such as blog posts, announcements, or other resources.
+                </p>
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => alert('Feature coming soon!')}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  >
+                    Add New Content
+                  </button>
+                </div>
+                <div className="mt-6 text-center text-gray-500">
+                  <p>No content available yet. Check back later or add new content to get started!</p>
                 </div>
               </div>
             </div>
