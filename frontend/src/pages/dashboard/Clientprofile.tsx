@@ -1,4 +1,5 @@
-import React, { useState, useEffect, JSX } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom'; // Added Link for navigation
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';

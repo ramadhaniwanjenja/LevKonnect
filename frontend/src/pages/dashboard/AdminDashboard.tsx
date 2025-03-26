@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -58,7 +59,7 @@ const AdminDashboard: React.FC = () => {
   const [jobPage, setJobPage] = useState(1);
   const itemsPerPage = 10;
 
-  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  const API_URL = process.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
   console.log('API_URL being used:', API_URL);
 
   useEffect(() => {
