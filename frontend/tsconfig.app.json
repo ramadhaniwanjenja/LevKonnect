@@ -5,7 +5,7 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "CommonJS",
+    "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "node",
     "isolatedModules": true,
@@ -15,6 +15,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
     "types": [
       "graceful-fs",
       "istanbul-lib-coverage",
