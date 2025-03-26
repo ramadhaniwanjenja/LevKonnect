@@ -1,10 +1,17 @@
 import axios from 'axios';
 
+interface ImportMetaEnv {
+  readonly VITE_API_URL?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com',
+  baseURL: (import.meta as unknown as ImportMeta).env.VITE_API_URL || 'https://levkonnect-backend.onrender.com',
 });
 
-// Add a request interceptor to include the token
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
