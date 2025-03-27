@@ -29,7 +29,7 @@ const EmailVerified: React.FC = () => {
 
   const verifyEmail = async (token: string) => {
     try {
-      const response = await axios.get(`${API_URL}/api/auth/verify-email?token=${token}`);
+      const response = await axios.get(`${API_URL}/verify-email?token=${token}`);
       if (response.status === 200) {
         setVerified(true);
         setTimeout(() => navigate('/dashboard'), 3000);
