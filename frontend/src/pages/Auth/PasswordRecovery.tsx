@@ -17,7 +17,7 @@ const PasswordRecovery: React.FC = () => {
   const [passwordError, setPasswordError] = useState('');
 
   // Use VITE_API_URL from environment variables
-  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   console.log('API_URL being used:', API_URL);
 
   // Check for token in URL to skip to reset stage

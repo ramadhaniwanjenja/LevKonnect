@@ -25,7 +25,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Use VITE_API_URL from environment variables
-  const API_URL = process.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
   console.log('API_URL being used:', API_URL);
 
   useEffect(() => {
