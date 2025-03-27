@@ -1,12 +1,26 @@
 {
-    "routes": [
-      {
-        "src": "^/email-verified",
-        "dest": "/index.html"
-      },
-      {
-        "src": "^/email-verified\\?token=.*",
-        "dest": "/index.html"
-      }
-    ]
-  }
+  "routes": [
+    {
+      "src": "/email-verified",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/email-verified\\?token=.*",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/email-verified",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/email-verified\\?token=.*",
+      "destination": "/index.html"
+    }
+  ]
+}
