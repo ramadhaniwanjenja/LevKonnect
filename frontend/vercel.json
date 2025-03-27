@@ -5,7 +5,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/email-verified\\?token=.*",
+      "source": "/email-verified\\?(.*)$",
       "destination": "/index.html"
     },
     {
