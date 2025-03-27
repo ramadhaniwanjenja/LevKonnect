@@ -20,7 +20,7 @@ const Register: React.FC = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.vercel.app';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
   console.log('API_URL being used:', API_URL);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
