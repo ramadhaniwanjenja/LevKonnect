@@ -1,0 +1,12 @@
+{
+    "routes": [
+      {
+        "src": "^/email-verified",
+        "dest": "/index.html"
+      },
+      {
+        "src": "^/email-verified\\?token=.*",
+        "dest": "/index.html"
+      }
+    ]
+  }
