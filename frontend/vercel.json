@@ -1,12 +1,16 @@
 {
-    "routes": [
-      {
-        "src": "^/email-verified",
-        "dest": "/index.html"
-      },
-      {
-        "src": "^/email-verified\\?token=.*",
-        "dest": "/index.html"
-      }
-    ]
-  }
+  "rewrites": [
+    {
+      "source": "/email-verified",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/email-verified\\?(.*)$",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
