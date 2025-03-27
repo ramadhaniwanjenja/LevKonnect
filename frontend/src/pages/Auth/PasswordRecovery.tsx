@@ -113,6 +113,8 @@ const PasswordRecovery: React.FC = () => {
     }
   };
 
+  // Removed duplicate declaration of verifyResetToken
+
   const renderRequestForm = () => (
     <form onSubmit={handleRequestReset}>
       <div className="mb-6">
