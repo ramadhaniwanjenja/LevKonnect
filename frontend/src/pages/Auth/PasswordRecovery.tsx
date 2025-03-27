@@ -32,11 +32,20 @@ const PasswordRecovery: React.FC = () => {
 
   const verifyResetToken = async (token: string) => {
     try {
+      console.log('Verifying token with URL:', `${API_URL}/api/auth/verify-reset-token?token=${token}`);
       const response = await axios.get(`${API_URL}/api/auth/verify-reset-token?token=${token}`);
+      console.log('Verify reset token response:', response.data);
       if (response.status === 200) {
         setStage('reset');
       }
     } catch (err) {
+      console.error('Error verifying reset token:', err);
+      if (axios.isAxiosError(err)) {
+        console.error('Error response:', err.response?.data);
+      }
+      if (axios.isAxiosError(err)) {
+        console.error('Error status:', err.response?.status);
+      }
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.message || 'Invalid or expired reset token. Please request a new reset link.');
       } else {
