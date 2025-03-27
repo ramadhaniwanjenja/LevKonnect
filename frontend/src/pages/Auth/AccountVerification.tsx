@@ -13,7 +13,7 @@ const AccountVerification: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend-g1d1mil8j-rshafii106s-projects-10744910.vercel.app';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.vercel.app';
   console.log('API_URL being used:', API_URL);
 
   // Extract email and token from URL query parameters
