@@ -7,4 +7,10 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    build: {
+
+    outDir: 'dist'  // Make sure this matches your Vercel output directory
+
+  }
+    
 });
