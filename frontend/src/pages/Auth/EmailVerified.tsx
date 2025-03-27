@@ -12,7 +12,7 @@ const EmailVerified: React.FC = () => {
   const [error, setError] = useState('');
 
   // Use VITE_API_URL from environment variables
-  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend.onrender.com';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://levkonnect-backend-g1d1mil8j-rshafii106s-projects-10744910.vercel.app';
   console.log('API_URL being used:', API_URL);
 
   // Extract token from URL query parameters
