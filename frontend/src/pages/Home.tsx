@@ -43,9 +43,7 @@ const Home: React.FC = () => {
               <div className="h-1 w-24 bg-gradient-to-r from-green-400 to-green-600 mx-auto mt-4"></div>
             </div>
             <p className="text-lg text-gray-600 mb-10 leading-relaxed animate-fade-in-up">
-              To bring and promote the use of clean and sustainable energy in Tanzania and Africa 
-              at large by harnessing green energy from the sun and discouraging non-friendly sources 
-              of energy that pollute our environment by creating awareness in the community.
+              LevKonnect aims to revolutionise the engineering sector in Africa by creating a digital platform that connects skilled engineers with job opportunities in solar energy, electrical installation, and related technical services. The platform serves as a bridge between clients, companies, and engineers, promoting clean energy adoption, job creation, and professional growth.
             </p>
             <Link 
               to="/about" 
