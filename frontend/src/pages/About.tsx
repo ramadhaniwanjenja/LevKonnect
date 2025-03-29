@@ -34,21 +34,21 @@ const About: React.FC = () => {
   const team = [
     {
       name: 'Ramadhani Shafii Wanjenja',
-      role: 'Founder & CEO',
+      role: 'Founder & product manager',
       bio: 'Experienced in renewable energy solutions with a passion for sustainable development in Africa.',
-      image: '/public/adminpic.jpg'
+      image: '/adminpic.jpg'
     },
     {
-      name: 'Team Member 2',
-      role: 'Technical Director',
+      name: 'Eliaman Jackson',
+      role: 'Co-Founder & CEO',
       bio: 'Expert in engineering systems with over 10 years of experience in implementing renewable energy projects.',
-      image: '/public/bingo.jpg'
+      image: '/bingo.jpg'
     },
     {
       name: 'Team Member 3',
-      role: 'Community Manager',
+      role: 'Communication Manager',
       bio: 'Passionate about connecting talent with opportunities and building strong professional communities.',
-      image: '/public/brenda.jpg'
+      image: '/brenda.jpg'
     },
   ];
 
