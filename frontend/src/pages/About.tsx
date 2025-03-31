@@ -141,7 +141,7 @@ const About: React.FC = () => {
             transform: isVisible.problem ? 'translateY(0)' : 'translateY(50px)'
           }}>
             <p className="text-gray-600 mb-12 text-lg leading-relaxed">
-              In Tanzania and many parts of Africa, millions of people lack access to reliable and affordable energy, relying instead on harmful, non-renewable sources like charcoal, firewood, and fossil fuels. These energy sources contribute to deforestation, air pollution, and climate change, while also posing health risks to communities, particularly women and children who are most exposed to indoor smoke. Despite the abundance of renewable energy resources like solar power, limited awareness, high upfront costs, and inadequate infrastructure hinder their adoption.
+            In Tanzania and across Africa, thousands of engineers graduate yearly, yet <b>over 61%</b> end up in non-engineering jobs due to limited access to industry opportunities, lack of structured networking platforms, and weak job markets. At the same time, businesses and households struggle to find verified, skilled engineers for services like solar installations, electrical wiring, and smart energy solutions.
             </p>
             
             <div className="grid md:grid-cols-2 gap-8 mt-12">
@@ -151,7 +151,8 @@ const About: React.FC = () => {
                   <h3 className="text-xl font-bold">Who is affected?</h3>
                 </div>
                 <p className="text-gray-300">
-                  Low-income households, rural communities, and small businesses that depend on polluting and unsustainable energy sources.
+                Engineers & technicians struggling to find relevant work.
+                Businesses, organizations, and households lacking access to skilled engineering services.
                 </p>
               </div>
               
@@ -161,7 +162,9 @@ const About: React.FC = () => {
                   <h3 className="text-xl font-bold">What is the problem?</h3>
                 </div>
                 <p className="text-gray-300">
-                  The widespread use of non-renewable energy sources harms the environment, health, and economic development, while clean energy solutions remain underutilized.
+                Lack of a centralized system to connect skilled engineers with job opportunities.<br/>
+                <b>Businesses and clients</b>face difficulty in finding verified engineers for projects.
+
                 </p>
               </div>
               
@@ -171,7 +174,7 @@ const About: React.FC = () => {
                   <h3 className="text-xl font-bold">Why is this a problem?</h3>
                 </div>
                 <p className="text-gray-300">
-                  It leads to environmental degradation, health issues, and slowed economic progress, while renewable energy potential remains untapped.
+                Engineers remain unemployed <br/> <b>Businesses and households</b> struggle with unreliable engineering services
                 </p>
               </div>
               
@@ -181,7 +184,8 @@ const About: React.FC = () => {
                   <h3 className="text-xl font-bold">How does this manifest?</h3>
                 </div>
                 <p className="text-gray-300">
-                  Through deforestation, air pollution, high energy costs, and a lack of awareness or access to clean energy alternatives.
+                <b>Engineers</b> working in unrelated fields despite their technical skills.<br/>
+                <b>Clients</b> wasting time and money searching for reliable engineers
                 </p>
               </div>
             </div>
